@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS — IoT Dashboard | ENET'Com</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     NAV
+════════════════════════════════════════════════════════ -->
+<nav>
+    <div class="nav-brand">NEXUS&nbsp;&nbsp;·&nbsp;&nbsp;ENET'COM IoT Dashboard</div>
+    <a class="gear-btn" href="/control" id="gearButton" aria-label="Panneau de contrôle">
+        <i class="fa-solid fa-gear"></i>
+    </a>
+</nav>
+
+<div class="page-wrapper">
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 1 — LIVE DASHBOARD
+════════════════════════════════════════════════════════ -->
+<div class="section-label">Tableau de Bord Temps Réel</div>
+
+<div class="screen">
+
+    <!-- HEADER : Localisation + Heure + Température principale -->
+    <div class="header-section widget">
+        <div class="location">
+            <i class="fa-solid fa-location-dot"></i>
+            Laboratoire ENET'Com — Sfax, TN
+        </div>
+        <div class="date-time" id="real-date">Chargement…</div>
+        <div class="clock-display" id="real-clock">00:00:00</div>
+        <div class="big-temp">{{ temp_ext }}°</div>
+        <div class="sub-header">
+            Atmosphère stable &nbsp;·&nbsp; État système : <b>Optimal</b>
+        </div>
+    </div>
+
+    <!-- ICÔNE MÉTÉO -->
+    <div class="widget weather-art">
+        <i class="fa-solid fa-cloud-moon-bolt"></i>
+        <div class="cycle-badge">
+            <i class="fa-solid fa-stopwatch"></i> Cycle 06:00
+        </div>
+    </div>
+
+    <!-- EXTÉRIEUR -->
+    <div class="widget">
+        <div class="widget-title"><i class="fa-solid fa-cloud-sun"></i> Temp. Extérieure</div>
+        <div class="metric-val" style="color:#2563eb;">{{ temp_ext }}°C</div>
+        <svg class="spark" viewBox="0 0 100 20">
+            <path d="M0 15 Q 20 5, 40 12 T 80 8 T 100 15" stroke="#2563eb" stroke-opacity="0.7"/>
+        </svg>
+    </div>
+
+    <!-- SIDEBAR 7 JOURS -->
+    <div class="widget sidebar">
+        <div class="widget-title"><i class="fa-solid fa-calendar-week"></i> Prévisions 7 Jours</div>
+        {% for jour in ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] %}
+        <div class="side-row">
+            <div class="day-info"><b>{{ jour }}</b><span>23 Mai</span></div>
+            <i class="fa-solid fa-cloud-sun"></i>
+            <div class="temp-info">+20° <span class="min-temp">+17°</span></div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- INTÉRIEUR LABO -->
+    <div class="widget">
+        <div class="widget-title"><i class="fa-solid fa-microchip"></i> Temp. Intérieure Labo</div>
+        <div class="metric-val" style="color:#ea580c;">{{ temp_int }}°C</div>
+        <svg class="spark" viewBox="0 0 100 20">
+            <path d="M0 10 Q 25 18, 50 10 T 100 12" stroke="#ea580c" stroke-opacity="0.7"/>
+        </svg>
+    </div>
+
+    <!-- CYCLE SOLAIRE -->
+    <div class="widget">
+        <div class="widget-title"><i class="fa-solid fa-sun"></i> Cycle Solaire</div>
+        <div class="metric-val" style="font-size:2rem; color:#d97706; font-family:'JetBrains Mono',monospace;">{{ sun_time }}</div>
+        <div class="sun-info">
+            <span>↑ 04:32</span>
+            <span style="color:#ffb800;">UV ×5</span>
+            <span>↓ 20:04</span>
+        </div>
+    </div>
+
+    <!-- AQI + MÉTRIQUES -->
+    <div class="widget">
+        <div class="aqi-header">
+            <div class="widget-title" style="margin-bottom:0;">
+                <i class="fa-solid fa-wind"></i> Qualité Air &nbsp;<span class="badge">AQI {{ aqi }}</span>
+            </div>
+            <i class="fa-solid fa-moon" style="color:#7a9ab8; font-size:0.9rem;"></i>
+        </div>
+        <div class="aqi-grid">
+            <div class="aqi-label">Vent<span class="aqi-num" style="color:#16a34a;">SE {{ wind }} m/s</span></div>
+            <div class="aqi-label">Champ Mag.<span class="aqi-num" style="color:#7c3aed;">G1 Stable</span></div>
+            <div class="aqi-label">Pression<span class="aqi-num">{{ pressure }} hPa</span></div>
+            <div class="aqi-label">Humidité<span class="aqi-num" style="color:#0891b2;">{{ humidity }}%</span></div>
+        </div>
+    </div>
+
+    <!-- DÉFILEMENT HORAIRE -->
+    <div class="widget hourly-scroll">
+        {% for i in range(6) %}
+        <div class="hour-item">
+            <span>0{{ i + 9 }}:00</span>
+            <i class="fa-solid fa-cloud-sun"></i>
+            <div class="hour-temp">+20°</div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div><!-- /screen -->
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN 2 — ANALYTICS & TABLES
+════════════════════════════════════════════════════════ -->
+<div class="section-label">Analytiques &amp; Infrastructure</div>
+
+<div class="screen2">
+
+    <!-- CHART : Températures -->
+    <div class="chart-container-wide">
+        <div class="widget-title"><i class="fa-solid fa-chart-line"></i> Évolution Températures — Labo vs Extérieur</div>
+        <div class="chart-wrapper"><canvas id="tempChart"></canvas></div>
+    </div>
+
+    <!-- CHART : Humidité -->
+    <div class="chart-container-wide">
+        <div class="widget-title"><i class="fa-solid fa-chart-bar"></i> Historique Humidité (%)</div>
+        <div class="chart-wrapper"><canvas id="humidityChart"></canvas></div>
+    </div>
+
+    <!-- CHART : Pression & Vent -->
+    <div class="chart-container-wide">
+        <div class="widget-title"><i class="fa-solid fa-gauge-simple-high"></i> Pression (hPa) &amp; Vent (m/s)</div>
+        <div class="chart-wrapper"><canvas id="barLineChart"></canvas></div>
+    </div>
+
+    <!-- CHART : Radar AQI -->
+    <div class="chart-container-wide flex-center">
+        <div class="widget-title"><i class="fa-solid fa-circle-nodes"></i> Analyse Volumétrique — Gaz &amp; Particules</div>
+        <div class="chart-wrapper compact"><canvas id="radarChart"></canvas></div>
+    </div>
+
+    <!-- TABLE : Nœuds matériels -->
+    <div class="table-container">
+        <div class="widget-title"><i class="fa-solid fa-server"></i> Statut Matériel — Nœuds Capteurs</div>
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>ID Nœud</th>
+                    <th>Emplacement</th>
+                    <th>Batterie</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for node in nodes %}
+                <tr>
+                    <td><span class="code-tag">{{ node.id }}</span></td>
+                    <td>{{ node.room }}</td>
+                    <td style="font-family:'Space Mono',monospace; font-size:0.78rem;">{{ node.battery }}</td>
+                    <td>
+                        <span class="status-dot" data-color="{{ node.color }}"></span>
+                        {{ node.status }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- TABLE : Logs système -->
+    <div class="table-container">
+        <div class="widget-title"><i class="fa-solid fa-triangle-exclamation"></i> Journal Événements &amp; Alertes</div>
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Horodatage</th>
+                    <th>Type</th>
+                    <th>Message Système</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td style="font-family:'Space Mono',monospace; font-size:0.72rem; color:#7a9ab8;">{{ log.time }}</td>
+                    <td><span class="type-badge" data-color="{{ log.badge }}">{{ log.type }}</span></td>
+                    <td style="color:#b0c8e8;">{{ log.msg }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div><!-- /screen2 -->
+</div><!-- /page-wrapper -->
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script>
+    // Applique les couleurs dynamiques depuis data-color (évite les warnings CSS Jinja)
+    document.querySelectorAll('.status-dot[data-color]').forEach(el => {
+        const c = el.getAttribute('data-color');
+        el.style.backgroundColor = c;
+        el.style.boxShadow = '0 0 6px ' + c;
+    });
+    document.querySelectorAll('.type-badge[data-color]').forEach(el => {
+        el.style.backgroundColor = el.getAttribute('data-color');
+    });
+</script>
+</body>
+</html>
